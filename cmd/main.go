@@ -1,8 +1,9 @@
 package main
 
 import (
-	"ManyLines/internal/handlers"
 	"log"
+
+	"github.com/ManyLinesEditor/backend/internal/handlers"
 
 	"github.com/gin-gonic/gin"
 )
