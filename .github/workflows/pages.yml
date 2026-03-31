@@ -19,6 +19,8 @@ jobs:
   build:
     name: Build website
     runs-on: ubuntu-latest
+    env:
+      OUTPUT_DIR: _site
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -32,7 +34,15 @@ jobs:
         run: go install go.abhg.dev/doc2go@latest
 
       - name: Generate API reference
-        run: doc2go ./...
+        run: doc2go -internal -out ${{ env.OUTPUT_DIR }} -subdir api ./...
+
+      - name: Flatten doc2go structure
+        run: |
+          MODULE=$(go list -m)
+          OUTPUT_DIR="${{ env.OUTPUT_DIR }}"
+
+          mv "$OUTPUT_DIR/api/$MODULE"/* "$OUTPUT_DIR"/
+          rm -rf "$OUTPUT_DIR/api/$MODULE"
 
       - name: Upload pages
         uses: actions/upload-pages-artifact@v3
