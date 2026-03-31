@@ -1,4 +1,4 @@
-module ManyLines
+module github.com/ManyLinesEditor/backend
 
 go 1.26.1
 
