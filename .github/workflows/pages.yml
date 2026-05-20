@@ -1,4 +1,4 @@
-name: Deploy Doc2Go to GitHub pages
+name: Deploy Swagger UI to GitHub Pages
 
 on:
   push:
@@ -17,34 +17,56 @@ concurrency:
 
 jobs:
   build:
-    name: Build website
+    name: Build Swagger UI
     runs-on: ubuntu-latest
-    env:
-      OUTPUT_DIR: _site
+
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.26'
+          go-version: '1.23'
 
-      - name: Install doc2go
-        run: go install go.abhg.dev/doc2go@latest
+      - name: Install swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
 
-      - name: Generate API reference
-        run: doc2go -internal -out ${{ env.OUTPUT_DIR }} -subdir api ./...
+      - name: Generate docs for gateway
+        working-directory: gateway
+        run: swag init -g cmd/main.go
 
-      - name: Flatten doc2go structure
+      - name: Generate docs for payment
+        working-directory: payment
+        run: swag init -g cmd/main.go
+
+      - name: Generate docs for storage
+        working-directory: storage
+        run: swag init -g cmd/main.go
+
+      - name: Download Swagger UI
         run: |
-          MODULE=$(go list -m)
-          OUTPUT_DIR="${{ env.OUTPUT_DIR }}"
+          npm install swagger-ui-dist
+          mv node_modules/swagger-ui-dist swagger-ui-dist
 
-          mv "$OUTPUT_DIR/api/$MODULE"/* "$OUTPUT_DIR"/
-          rm -rf "$OUTPUT_DIR/api/$MODULE"
+      - name: Assemble site
+        run: |
+          mkdir -p _site/gateway _site/payment _site/storage
 
-      - name: Upload pages
+          cp gateway/docs/swagger.json _site/gateway/swagger.json
+          cp payment/docs/swagger.json _site/payment/swagger.json
+          cp storage/docs/swagger.json _site/storage/swagger.json
+
+          for svc in gateway payment storage; do
+            cp swagger-ui-dist/swagger-ui*.js  _site/$svc/
+            cp swagger-ui-dist/swagger-ui*.css _site/$svc/
+            cp swagger-ui-dist/favicon*.png    _site/$svc/
+            sed "s/SERVICE_NAME/$svc/" scripts/swagger-template.html > _site/$svc/index.html
+          done
+
+          cp scripts/swagger-index.html _site/index.html
+
+      - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site/
@@ -59,7 +81,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-      
-    
-
-    
