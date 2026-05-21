@@ -10,16 +10,34 @@ permissions:
 
 jobs:
   test:
-    name: Run tests
+    name: Test / ${{ matrix.service }}
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [gateway, payment, storage]
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.26'
-      
-      - name: Run tests
+          cache-dependency-path: ${{ matrix.service }}/go.sum
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12
+          working-directory: ${{ matrix.service }}
+
+      - name: go test
         run: go test ./...

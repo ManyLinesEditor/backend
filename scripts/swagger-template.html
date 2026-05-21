@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ManyLines – SERVICE_NAME API</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" type="text/css" href="swagger-ui.css">
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+        <script src="swagger-ui-bundle.js"></script>
+        <script src="swagger-ui-standalone-preset.js"></script>
+        <script>
+    SwaggerUIBundle({
+      url: "swagger.json",
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+      layout: "StandaloneLayout"
+    })
+  </script>
+    </body>
+</html>

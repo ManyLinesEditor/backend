@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ManyLinesEditor/backend/internal/handlers"
+	"github.com/ManyLinesEditor/backend/storage/internal/handlers"
 
 	"github.com/gin-gonic/gin"
 )

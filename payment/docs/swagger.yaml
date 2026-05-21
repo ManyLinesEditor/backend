@@ -1,0 +1,248 @@
+basePath: /
+definitions:
+  handlers.createPaymentRequest:
+    properties:
+      amount:
+        minimum: 1
+        type: integer
+      feature_id:
+        type: string
+    required:
+    - amount
+    - feature_id
+    type: object
+  handlers.createPaymentResponse:
+    properties:
+      checkout_url:
+        type: string
+      payment_id:
+        type: string
+    type: object
+  handlers.registerDeviceRequest:
+    properties:
+      fingerprint:
+        type: string
+    required:
+    - fingerprint
+    type: object
+  handlers.registerDeviceResponse:
+    properties:
+      device_sync_id:
+        type: string
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  models.Payment:
+    properties:
+      amount:
+        type: integer
+      checkout_url:
+        type: string
+      created_at:
+        type: string
+      feature_id:
+        type: string
+      id:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.Subscription:
+    properties:
+      feature_id:
+        type: string
+      until:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.WebhookResponse:
+    properties:
+      status:
+        type: string
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: Payment service for ManyLines Editor
+  title: ManyLines Payment API
+  version: "1.0"
+paths:
+  /devices:
+    post:
+      consumes:
+      - application/json
+      description: Called once after login. Returns device_sync_id used as device_id
+        in the deltas table.
+      parameters:
+      - description: Device data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.registerDeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.registerDeviceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: device revoked
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Register device
+      tags:
+      - devices
+  /payments:
+    get:
+      description: Returns all payments for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Payment'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List payments
+      tags:
+      - payments
+    post:
+      consumes:
+      - application/json
+      description: Initiates a new payment for the specified feature
+      parameters:
+      - description: Payment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createPaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.createPaymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "502":
+          description: payment gateway unavailable
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create payment
+      tags:
+      - payments
+  /sse/features:
+    get:
+      description: |-
+        Opens a persistent SSE connection. Sends a "ping" event on connect,
+        then "feature" events when payments are confirmed.
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: 'event: feature\ndata: {payload}'
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Subscribe to feature events
+      tags:
+      - sse
+  /subscriptions:
+    get:
+      description: Returns all active subscriptions for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Subscription'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List active subscriptions
+      tags:
+      - subscriptions
+  /webhooks/acquiremock:
+    post:
+      consumes:
+      - application/octet-stream
+      description: |-
+        Receives payment confirmation events from AcquireMock.
+        Validates HMAC signature from X-Signature header.
+      parameters:
+      - description: HMAC signature
+        in: header
+        name: X-Signature
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.WebhookResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: invalid signature
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: AcquireMock webhook
+      tags:
+      - webhooks
+securityDefinitions:
+  BearerAuth:
+    description: 'Format: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

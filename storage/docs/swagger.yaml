@@ -1,0 +1,93 @@
+basePath: /
+definitions:
+  models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  models.UploadResult:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: File storage service for ManyLines Editor
+  title: ManyLines Storage API
+  version: "1.0"
+paths:
+  /files:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a file via multipart/form-data
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.UploadResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload file
+      tags:
+      - files
+  /files/{id}:
+    get:
+      description: Downloads a file by its UUID. Returns the file as an attachment.
+      parameters:
+      - description: File UUID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: invalid file id
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: file not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Download file
+      tags:
+      - files
+securityDefinitions:
+  BearerAuth:
+    description: 'Format: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
